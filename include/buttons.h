@@ -25,4 +25,5 @@ typedef enum
 }BtnState;
 
 int checkBtn(Button *btn);
+void btnInit(Button *btn,int pin, int id);
 #endif

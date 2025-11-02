@@ -28,3 +28,11 @@ int checkBtn(Button *btn){
     }
     return BTN_NONE;
 }
+
+void btnInit(Button *btn,int pin, int id){
+    btn->pin = pin;
+    pinMode(btn->pin, INPUT_PULLUP);
+    btn->state = digitalRead(btn->pin);
+    btn->lastDbT = millis();
+    btn->id = id;
+}
