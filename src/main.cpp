@@ -10,6 +10,12 @@ Melody melody;
 WiFiUDP Udp;
 Button pickup;
 SystemData MachineData;
+OSCHandler Osc;
+
+byte getCurrentState(){
+  return MachineData.state;
+}
+
 
 void blinkBuiltin(){
   const int cycleTime = 500;
@@ -47,6 +53,13 @@ void onEnter(enum States s)
 void transitToState(enum States s)
 {
   Serial.print("Transition from ");Serial.print(MachineData.state); Serial.print(" to ");Serial.println(s);
+  if (s >= STATE_CNT)
+  {
+    Serial.print("Invalid Call to transitToState: ");
+    Serial.println(s);
+    return;
+  }
+  
   // osc.sendCurrentStatus();
   onExit((enum States)MachineData.state);
   onEnter(s);
@@ -56,6 +69,7 @@ void processEvent(){
   byte event = EVENT_NONE;
   byte counter = 0;
   byte storage;
+  if(MachineData.event){
 
   do{
     storage =1<<(counter);  /* Maske zum erkennen von Bits erzeugen */
@@ -69,6 +83,7 @@ void processEvent(){
     (counter < (sizeof(MachineData.event)*8))&&
     (event == EVENT_NONE)
   );
+}
 
 
   switch (MachineData.state)
@@ -163,43 +178,20 @@ void setup(){
   btnInit(&pickup,PICKUP_PIN, 0);
   Serial.begin(9600);
   delay(100);
-
+  Osc.begin();
+  Osc.attachStateTransitionCallback(transitToState);
   transitToState(STATE_NOT_CONNECTED);
-
-  
-
 }
 
 void loop() {
+  
+  //Handle Events
   if (WiFi.status() == WL_CONNECTION_LOST)
   {
     MachineData.event = EVENT_LOST_CONNECTION;
   }
-  
-  // Receive OSC messages
-  OSCMessage msgIN;
-  int size = Udp.parsePacket();
-  if (size > 0) {
-    while (size--) {
-      msgIN.fill(Udp.read());
-    }
-    if (!msgIN.hasError()) {
-      // msgIN.dispatch("/test", handleTest);
-      // msgIN.dispatch("/ring", handleRing);
-    }
-  }
 
-  // Example: Send an OSC message every 5 seconds
-  static unsigned long lastSend = 0;
-  if (millis() - lastSend > 5000) {
-    // sendHeartbeat();
-    lastSend = millis();
-  }
-
-
-
-
-  int btn_state = checkBtn((&pickup));
+   int btn_state = checkBtn((&pickup));
     switch (btn_state)
     {
     
@@ -212,6 +204,8 @@ void loop() {
     break;
   }
 
+
+  Osc.poll();
 
 
   processEvent();

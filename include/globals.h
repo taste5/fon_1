@@ -18,7 +18,8 @@ enum States {
   STATE_NOT_CONNECTED = 0x00,
   STATE_IDLE = 0x01,
   STATE_RINGING = 0x02,
-  STATE_PICKEDUP = 0x04
+  STATE_PICKEDUP = 0x04,
+  STATE_CNT,
 };
 
 
@@ -31,4 +32,5 @@ enum Events {
 };
 
 
+byte getCurrentState();
 #endif 
