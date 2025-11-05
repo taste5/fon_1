@@ -9,8 +9,8 @@ struct SystemData {
   byte state;
   byte prev_state;
   byte event;
-  byte connectionStatus; 
 };
+
 
 
 

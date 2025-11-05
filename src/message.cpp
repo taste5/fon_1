@@ -3,68 +3,96 @@
 StateTransitionCallback OSCHandler::stateCallback = nullptr;
 OSCHandler* OSCHandler::instance = nullptr;
 
-OSCHandler::OSCHandler():
-localPort(LOCAL_PORT),
-remoteIp(REMOTE_IP),
-remotePort(REMOTE_PORT)
+OSCHandler::OSCHandler(unsigned int localPort, unsigned int remotePort, const char *remoteIp):
+localPort(localPort),
+remotePort(remotePort),
+connectionState(NOT_CONNECTED)
 {
   instance = this;
+  this->remoteIp = makeIP(remoteIp);
 }
 void OSCHandler::begin(){
+  this->connectToWifi();
   udp.begin(LOCAL_PORT);
+  Serial.printf("Listening for OSC on port %d\n", LOCAL_PORT);
 }
 
+
+IPAddress OSCHandler::makeIP(const char *ipstr){
+  IPAddress ip;
+  ip.fromString(ipstr);
+  return ip;
+}
 
 void OSCHandler::attachStateTransitionCallback(StateTransitionCallback cb){
   stateCallback = cb;
 }
 
+void OSCHandler::ping(){
+  static unsigned long pingTimer = 0;
+  const int pingIntervalMS = 0xFFFF;
+  if(millis() - pingTimer > pingIntervalMS)
+  {
+    this->send("/ping", 0);
+    pingTimer = millis();
+  }
+}
+
 void OSCHandler::poll(){
+  if (connectionState == NOT_CONNECTED)
+  {
+    return;
+  }
+  
   int size = udp.parsePacket();
   if(size){
     OSCMessage msgIN;
     while (size--) msgIN.fill(udp.read());
 
     if(!msgIN.hasError()){
+      this->debug(msgIN);
       msgIN.route("/fon/state", handleStateCmd);
+      msgIN.route("/fon/ring", handleStateCmd);
+      msgIN.route("/fon/pickup", handleStateCmd);
+      msgIN.route("/fon/idle", handleStateCmd);
     }
   }
 }
 void OSCHandler::debug(OSCMessage &msg){
 int numArgs = msg.size();
-    Serial.print("Message");
     Serial.print(msg.getAddress());
-    Serial.print("has ");
-    Serial.print(numArgs);
-    Serial.println(" arguments:");
+    Serial.print(" ");
     for (int i = 0, l = msg.size(); i < l; i++)
     {
           if (msg.isInt(i)) {
             int val = msg.getInt(i);
-            Serial.print("Arg "); Serial.print(i); Serial.print(" (int): "); Serial.println(val);
+            Serial.print(" (int): "); Serial.print(val);
         } else if (msg.isFloat(i)) {
             float val = msg.getFloat(i);
-            Serial.print("Arg "); Serial.print(i); Serial.print(" (float): "); Serial.println(val);
+            Serial.print(" (float): "); Serial.print(val);
         } else if (msg.isString(i)) {
             char buffer[64];
             msg.getString(i, buffer, sizeof(buffer));
-            Serial.print("Arg "); Serial.print(i); Serial.print(" (string): "); Serial.println(buffer);
+            Serial.print(" (string): "); Serial.print(buffer);
         } else {
-            Serial.print("Arg "); Serial.print(i); Serial.println(" (Unknown type)");
+            Serial.print(i); Serial.print(" (Unknown type)");
         }
     }
+    Serial.println();
     
 }
 
-void OSCHandler::composeMsg(OSCMessage &msg, const char *addr)
-{
-  char buffer[64];
-  snprintf(buffer,sizeof(buffer), "/fon%s", addr);
-  msg.setAddress(buffer);
-}
 
 void OSCHandler::transmitMsg(OSCMessage &msg)
 {
+  if (connectionState == NOT_CONNECTED)
+  {
+    Serial.println("Warning. Sending Aborted because there is no Connection");
+    return;
+  }
+  
+  Serial.print("Sent message: ");
+  this->debug(msg);
   udp.beginPacket(remoteIp,remotePort);
   msg.send(udp);
   udp.endPacket();
@@ -74,42 +102,33 @@ void OSCHandler::transmitMsg(OSCMessage &msg)
 
 void OSCHandler::send(const char *address, int val)
 {
-  OSCMessage msg;
-  composeMsg(msg,address);
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
 }
 void OSCHandler::send(const char *address, float val)
 {
-  OSCMessage msg;
-  composeMsg(msg,address);
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
 }
 void OSCHandler::send(const char *address, const char *val)
 {
-  OSCMessage msg;
-  composeMsg(msg,address);
+ char buffer[64];
+  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
 }
 
-void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
-{
-  if (msg.isInt(0))
-  {
-    enum States state = (enum States)msg.getInt(0);
-    if(stateCallback) stateCallback(state);
-  }else if (msg.size() && !msg.isInt(0))
-  {
-    instance->send("/error", "expected Int");
-  }
 
-  instance->send("/state", getCurrentState());
-}
-wl_status_t connectToWifi(const char * ssid, const char *password, const char *ap_ssid, const char *ap_pass){
+void OSCHandler::connectToWifi(){
   Serial.println("Connecting to WiFi...");
-  WiFi.begin(ssid, password);
+  WiFi.begin(credentials.ssid,credentials.password);
   
   unsigned long startAttemptTime = millis();
   
@@ -118,69 +137,51 @@ wl_status_t connectToWifi(const char * ssid, const char *password, const char *a
     Serial.print(".");
     delay(500);
   }
-
+  
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nConnected to WiFi!");
     Serial.print("IP Address: ");
+    connectionState = CONNECTED;
   } else {
     Serial.println("\nFailed to connect. Starting Access Point...");
-    WiFi.softAP(ap_ssid, ap_pass);
+    WiFi.softAP(credentials.ap_ssid, credentials.ap_pass);
     Serial.print("AP IP Address: ");
-    Serial.println(WiFi.softAPIP());  
+    Serial.println(WiFi.softAPIP());
+    connectionState = AP_OPEN;
+  }
+  
+  
+  
+  
+};
+void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
+{
+ const char *subAddr = msg.getAddress() + 5; // 5 = /fon/
+ char c = subAddr[0];
+ Serial.print(subAddr);
 
+ switch (c)
+ {
+ case 'r': //ring
+    if(stateCallback) stateCallback(STATE_RINGING);
+  break;
+  case 'p': //pickup
+    if(stateCallback) stateCallback(STATE_PICKEDUP);
+  break;
+  case 'i': //idle
+    if(stateCallback) stateCallback(STATE_IDLE);
+  break; 
+  default:
+    if (msg.isInt(0))
+    {
+      enum States state = (enum States)msg.getInt(0);
+      if(stateCallback) stateCallback(state);
+    }else if (msg.size() && !msg.isInt(0))
+    {
+      instance->send("/error", "expected Int");
+    }
+  break;
   }
 
-  // Udp.begin(LOCAL_PORT);
-  // Serial.printf("Listening for OSC on port %d\n", LOCAL_PORT);
-  return WiFi.status();
-};
-
-
-
-
-void sendMsg(OSCMessage &msg) {
-  // Udp.beginPacket(REMOTE_IP, REMOTE_PORT);
-  // msg.send(Udp);
-  // Udp.endPacket();
-  // Serial.print("Sent: ");
-  // Serial.println(msg.getAddress());
-}
-
-void sendHeartbeat(){
-   OSCMessage msg("/fon/ping");
-   sendMsg(msg);
-}
-
-
-void handleTest(OSCMessage &msg) {
-  Serial.print("Received /test ");
-  if (msg.size() > 0) Serial.println(msg.getFloat(0));
-}
-
-void handleRing(OSCMessage &message){
-   int numArgs = message.size();
-    if (numArgs == 0) {
-        Serial.println("No arguments.");
-        return;
-    }
-
-    Serial.print("Arguments: ");
-    for (int i = 0; i < numArgs; i++) {
-        if (message.isInt(i)) {
-            Serial.print(message.getInt(i));
-        } 
-        else if (message.isFloat(i)) {
-            Serial.print(message.getFloat(i));
-        } 
-        // else if (message.isString(i)) {
-        //     Serial.print(message.getString(i));
-        // } 
-        else {
-            Serial.print("?");
-        }
-
-        if (i < numArgs - 1) Serial.print(", ");
-    }
-    Serial.println();
-  // data.is_ringing = message.getInt(0);
+  instance->send("/state", getCurrentState());
 }

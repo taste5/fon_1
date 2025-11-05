@@ -8,24 +8,32 @@
 #include "config.h"
 #include <WiFiUdp.h>
 #include <WiFi.h>
+#include "secrets.h"
 
 typedef void (*StateTransitionCallback)(enum States newState);
 
+enum OSCConnectionStates{
+    NOT_CONNECTED,
+    CONNECTED,
+    AP_OPEN
+};
 
 class OSCHandler{
     public:
-        OSCHandler();
+        OSCHandler(unsigned int localPort, unsigned int remotePort, const char *remoteIp);
         void begin();
 
         void send(const char *address, int val);
         void send(const char *address, float val);
         void send(const char *address, const char *val);
+        void ping();
         void attachStateTransitionCallback(StateTransitionCallback cb);
         static OSCHandler* instance;
-
+        enum OSCConnectionStates getConnectionState(){return connectionState;};
         void poll();
     
     private:
+        void connectToWifi();
         static StateTransitionCallback stateCallback;
         static void handleStateCmd(OSCMessage &msg, int addrOffset);
         static void handleConfigCmd(OSCMessage &msg, int addrOffset);
@@ -34,8 +42,9 @@ class OSCHandler{
         void composeMsg(OSCMessage &msg, const char *addr);
         void transmitMsg(OSCMessage &msg);
         WiFiUDP udp;
-        SystemData *sysData;
-        const char * remoteIp;
+        enum OSCConnectionStates connectionState;
+        IPAddress remoteIp;
+        IPAddress makeIP(const char * ipstr);
         const unsigned int localPort;
         const unsigned int remotePort;
 

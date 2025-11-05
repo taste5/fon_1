@@ -7,20 +7,19 @@
 #include "message.h"
 
 Melody melody;
-WiFiUDP Udp;
 Button pickup;
 SystemData MachineData;
-OSCHandler Osc;
+OSCHandler Osc(LOCAL_PORT,REMOTE_PORT,REMOTE_IP);
 
 byte getCurrentState(){
   return MachineData.state;
 }
 
 
-void blinkBuiltin(){
-  const int cycleTime = 500;
+void blinkBuiltin(int cycle){
+  
   static unsigned long lastBlink=0;
-  if(millis() - lastBlink > cycleTime){digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));lastBlink = millis();}
+  if(millis() - lastBlink > cycle){digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));lastBlink = millis();}
 }
 
 
@@ -44,6 +43,8 @@ void onEnter(enum States s)
   case STATE_NOT_CONNECTED:
     digitalWrite(LED_BUILTIN, HIGH);
     break;
+  case STATE_PICKEDUP:
+    digitalWrite(LED_BUILTIN,LOW);
   
   default:
     break;
@@ -53,14 +54,17 @@ void onEnter(enum States s)
 void transitToState(enum States s)
 {
   Serial.print("Transition from ");Serial.print(MachineData.state); Serial.print(" to ");Serial.println(s);
+  // Osc.send("/state", s);
   if (s >= STATE_CNT)
   {
     Serial.print("Invalid Call to transitToState: ");
     Serial.println(s);
+    char buffer[64];
+    snprintf(buffer,sizeof(buffer),"invalid input: %i", s);
+    // Osc.send("/error/state", buffer);
     return;
   }
   
-  // osc.sendCurrentStatus();
   onExit((enum States)MachineData.state);
   onEnter(s);
   MachineData.state = s;
@@ -89,8 +93,8 @@ void processEvent(){
   switch (MachineData.state)
   {
     case STATE_NOT_CONNECTED:
-      MachineData.connectionStatus = connectToWifi(ssid,password,ap_ssid,ap_pass);
-      if (MachineData.connectionStatus == WL_CONNECTED)
+      Osc.begin();
+      if (Osc.getConnectionState())
       {
         transitToState(STATE_IDLE);
       }
@@ -108,14 +112,14 @@ void processEvent(){
       break;
 
       case EVENT_PICKUP:
-        // goToState(STATE_PICKUP); //
+        transitToState(STATE_PICKEDUP); //
       break;
 
       case EVENT_LOST_CONNECTION:
         transitToState(STATE_NOT_CONNECTED);
       break;
       default:
-      blinkBuiltin();
+      blinkBuiltin(500);
         break;
       }
     break;
@@ -140,6 +144,7 @@ void processEvent(){
 
         default:
           // ring();
+          blinkBuiltin(100);
         break;
       }
     break;
@@ -178,7 +183,6 @@ void setup(){
   btnInit(&pickup,PICKUP_PIN, 0);
   Serial.begin(9600);
   delay(100);
-  Osc.begin();
   Osc.attachStateTransitionCallback(transitToState);
   transitToState(STATE_NOT_CONNECTED);
 }
@@ -206,9 +210,10 @@ void loop() {
 
 
   Osc.poll();
+  Osc.ping();
 
 
-  processEvent();
+ processEvent();
   
 
 
