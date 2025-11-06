@@ -108,7 +108,7 @@ void processEvent(){
         break;
       
       case EVENT_KEY_PRESSED:
-        // processKeyPressOnIdle;
+        // processKeyPressOnIdle();
       break;
 
       case EVENT_PICKUP:
@@ -210,7 +210,6 @@ void loop() {
 
 
   Osc.poll();
-  Osc.ping();
 
 
  processEvent();

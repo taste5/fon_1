@@ -3,6 +3,9 @@
 StateTransitionCallback OSCHandler::stateCallback = nullptr;
 OSCHandler* OSCHandler::instance = nullptr;
 
+OSCPing::OSCPing(){};
+
+
 OSCHandler::OSCHandler(unsigned int localPort, unsigned int remotePort, const char *remoteIp):
 localPort(localPort),
 remotePort(remotePort),
@@ -15,6 +18,7 @@ void OSCHandler::begin(){
   this->connectToWifi();
   udp.begin(LOCAL_PORT);
   Serial.printf("Listening for OSC on port %d\n", LOCAL_PORT);
+  ping.begin(60);
 }
 
 
@@ -28,24 +32,35 @@ void OSCHandler::attachStateTransitionCallback(StateTransitionCallback cb){
   stateCallback = cb;
 }
 
-void OSCHandler::ping(){
-  static unsigned long pingTimer = 0;
-  const int pingIntervalMS = 0xFFFF;
-  if(millis() - pingTimer > pingIntervalMS)
-  {
-    this->send("/ping", 0);
-    pingTimer = millis();
-  }
-}
+// void OSCHandler::ping(){
+//   static unsigned long pingTimer = 0;
+//   const int pingIntervalMS = 0xFFFF;
+//   if(millis() - pingTimer > pingIntervalMS)
+//   {
+//     this->send("/ping", 0);
+//     pingTimer = millis();
+//   }
+// }
 
 void OSCHandler::poll(){
   if (connectionState == NOT_CONNECTED)
   {
     return;
   }
+
+  // No update since a long time, better send ping
+  if (ping.is_due())
+  {
+    this->send(ping.getStrVal(),ping.getCycleT());
+    ping.resetTimer();
+  }
+  
   
   int size = udp.parsePacket();
   if(size){
+
+    ping.resetTimer(); // We received an update, hence we are sure the connection is up.
+    
     OSCMessage msgIN;
     while (size--) msgIN.fill(udp.read());
 
@@ -55,6 +70,7 @@ void OSCHandler::poll(){
       msgIN.route("/fon/ring", handleStateCmd);
       msgIN.route("/fon/pickup", handleStateCmd);
       msgIN.route("/fon/idle", handleStateCmd);
+      msgIN.route("/fon/ping", handlePing);
     }
   }
 }
@@ -184,4 +200,17 @@ void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
   }
 
   instance->send("/state", getCurrentState());
+}
+
+void OSCHandler::handlePing(OSCMessage &msg, int addrOffset)
+{
+  const char *subAddr = msg.getAddress() + addrOffset;
+
+  if((strcmp(subAddr,"/set\x20") == 0)){
+    if (msg.isFloat(0))      instance->ping.setCycleT_sec(msg.getFloat(0));
+    else if (msg.isInt(0))      instance->ping.setCycleT_sec(msg.getInt(0));
+  }
+  
+    instance->send(instance->ping.getStrAnswer(), instance->ping.getCycleT()); 
+  
 }
