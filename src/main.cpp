@@ -1,219 +1,74 @@
-#include <Arduino.h>
-#include "config.h"
-#include "globals.h"
-#include "buttons.h"
-#include "ring.h"
-#include "secrets.h"
-#include "message.h"
+// /* @file MultiKey.ino
+// || @version 1.0
+// || @author Mark Stanley
+// || @contact mstanley@technologist.com
+// ||
+// || @description
+// || | The latest version, 3.0, of the keypad library supports up to 10
+// || | active keys all being pressed at the same time. This sketch is an
+// || | example of how you can get multiple key presses from a keypad or
+// || | keyboard.
+// || #
+// */
 
-Melody melody;
-Button pickup;
-SystemData MachineData;
-OSCHandler Osc(LOCAL_PORT,REMOTE_PORT,REMOTE_IP);
+// #include <Keypad.h>
+// #include "config.h"
 
-byte getCurrentState(){
-  return MachineData.state;
-}
+// const byte ROWS = 4; //four rows
+// const byte COLS = 3; //three columns
 
+// byte rowPins[ROWS] = {KEY_PIN_ROW_0, KEY_PIN_ROW_1,KEY_PIN_ROW_2,KEY_PIN_ROW_3}; //connect to the row pinouts of the kpd
+// byte colPins[COLS] = {KEY_PIN_COL_0, KEY_PIN_COL_1, KEY_PIN_COL_2}; //connect to the column pinouts of the kpd
 
-void blinkBuiltin(int cycle){
-  
-  static unsigned long lastBlink=0;
-  if(millis() - lastBlink > cycle){digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));lastBlink = millis();}
-}
+// Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
-
-void onExit(enum States s)
-{
-  switch (s)
-  {
-  case STATE_NOT_CONNECTED:
-    digitalWrite(LED_BUILTIN,LOW);
-    break;
-  
-  default:
-    break;
-  }
-}
-
-void onEnter(enum States s)
-{
-  switch (s)
-  {
-  case STATE_NOT_CONNECTED:
-    digitalWrite(LED_BUILTIN, HIGH);
-    break;
-  case STATE_PICKEDUP:
-    digitalWrite(LED_BUILTIN,LOW);
-  
-  default:
-    break;
-  }
-}
-
-void transitToState(enum States s)
-{
-  Serial.print("Transition from ");Serial.print(MachineData.state); Serial.print(" to ");Serial.println(s);
-  // Osc.send("/state", s);
-  if (s >= STATE_CNT)
-  {
-    Serial.print("Invalid Call to transitToState: ");
-    Serial.println(s);
-    char buffer[64];
-    snprintf(buffer,sizeof(buffer),"invalid input: %i", s);
-    // Osc.send("/error/state", buffer);
-    return;
-  }
-  
-  onExit((enum States)MachineData.state);
-  onEnter(s);
-  MachineData.state = s;
-}
-void processEvent(){
-  byte event = EVENT_NONE;
-  byte counter = 0;
-  byte storage;
-  if(MachineData.event){
-
-  do{
-    storage =1<<(counter);  /* Maske zum erkennen von Bits erzeugen */
-    if ((storage&MachineData.event)!=0)
-    {
-      event = storage; //Event recognised, extract event
-      MachineData.event &=~storage; // clear from memory
-    }
-    counter++;
-  }while (
-    (counter < (sizeof(MachineData.event)*8))&&
-    (event == EVENT_NONE)
-  );
-}
+// unsigned long loopCount;
+// unsigned long startTime;
+// String msg;
 
 
-  switch (MachineData.state)
-  {
-    case STATE_NOT_CONNECTED:
-      Osc.begin();
-      if (Osc.getConnectionState())
-      {
-        transitToState(STATE_IDLE);
-      }
-      
-    break;
-    case STATE_IDLE:
-      switch (event)
-      {
-      case EVENT_INCOMING_MESSAGE:
-        // processIncomingMessage();
-        break;
-      
-      case EVENT_KEY_PRESSED:
-        // processKeyPressOnIdle();
-      break;
-
-      case EVENT_PICKUP:
-        transitToState(STATE_PICKEDUP); //
-      break;
-
-      case EVENT_LOST_CONNECTION:
-        transitToState(STATE_NOT_CONNECTED);
-      break;
-      default:
-      blinkBuiltin(500);
-        break;
-      }
-    break;
-      case STATE_RINGING:
-      switch (event)
-      {
-        case EVENT_INCOMING_MESSAGE:
-          // processIncomingMessage();
-        break;
-      
-        case EVENT_KEY_PRESSED:
-          // processKeyPressOnRing;
-        break;
-
-        case EVENT_PICKUP:
-          // goToState(STATE_PICKUP);
-        break;
-      
-        case EVENT_LOST_CONNECTION:
-          // goToState(STATE_NOT_CONNECTED);
-        break;
-
-        default:
-          // ring();
-          blinkBuiltin(100);
-        break;
-      }
-    break;
-    case STATE_PICKEDUP:
-       switch (event)
-      {
-        case EVENT_INCOMING_MESSAGE:
-          // processIncomingMessage();
-        break;
-      
-        case EVENT_KEY_PRESSED:
-          // processKeyPressOnPickup;
-        break;
-
-        case EVENT_PICKUP:
-          // goToState(STATE_IDLE);
-        break;
-      
-        case EVENT_LOST_CONNECTION:
-          // goToState(STATE_NOT_CONNECTED);
-        break;
-
-        default:
-        break;
-      }
-    break;
-      default:
-    break;
-  }
-}
+// void setup() {
+//     Serial.begin(9600);
+//     loopCount = 0;
+//     startTime = millis();
+//     msg = "";
+// }
 
 
-void setup(){
+// void loop() {
+//     loopCount++;
+//     if ( (millis()-startTime)>5000 ) {
+//         Serial.print("Average loops per second = ");
+//         Serial.println(loopCount/5);
+//         startTime = millis();
+//         loopCount = 0;
+//     }
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  btnInit(&pickup,PICKUP_PIN, 0);
-  Serial.begin(9600);
-  delay(100);
-  Osc.attachStateTransitionCallback(transitToState);
-  transitToState(STATE_NOT_CONNECTED);
-}
-
-void loop() {
-  
-  //Handle Events
-  if (WiFi.status() == WL_CONNECTION_LOST)
-  {
-    MachineData.event = EVENT_LOST_CONNECTION;
-  }
-
-   int btn_state = checkBtn((&pickup));
-    switch (btn_state)
-    {
-    
-    case BTN_PRESSED:
-    break;
-    case BTN_RELEASED:
-    noTone(BUZZER_PIN);
-    break;
-    default:
-    break;
-  }
-
-
-  Osc.poll();
-
-
- processEvent();
-  
-
-
-}
+//     // Fills kpd.key[ ] array with up-to 10 active keys.
+//     // Returns true if there are ANY active keys.
+//     if (kpd.getKeys())
+//     {
+//         for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
+//         {
+//             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
+//             {
+//                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
+//                     case PRESSED:
+//                     msg = " PRESSED.";
+//                 break;
+//                     case HOLD:
+//                     msg = " HOLD.";
+//                 break;
+//                     case RELEASED:
+//                     msg = " RELEASED.";
+//                 break;
+//                     case IDLE:
+//                     msg = " IDLE.";
+//                 }
+//                 Serial.print("Key ");
+//                 Serial.print(kpd.key[i].kchar);
+//                 Serial.println(msg);
+//             }
+//         }
+//     }
+// }  // End loop
