@@ -141,6 +141,24 @@ void OSCHandler::send(const char *address, const char *val)
   transmitMsg(msg);
 }
 
+// send pseudo midi messages
+void OSCHandler::send(const char *address, uint8_t nn, uint8_t vel)
+{
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  OSCMessage msg(buffer);
+  msg.add(nn).add(vel);
+  transmitMsg(msg);
+}
+  void OSCHandler::sendChar(const char *address, char c)
+  {
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  OSCMessage msg(buffer);
+  char str[2] = {c,0};
+  msg.add(str);
+  transmitMsg(msg);
+  }
 
 void OSCHandler::connectToWifi(){
   Serial.println("Connecting to WiFi...");

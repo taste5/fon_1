@@ -41,8 +41,10 @@ class OSCHandler{
         void begin();
 
         void send(const char *address, int val);
+        void sendChar(const char *address, char c);
         void send(const char *address, float val);
         void send(const char *address, const char *val);
+        void send(const char *address, uint8_t, uint8_t);
         void attachStateTransitionCallback(StateTransitionCallback cb);
         static OSCHandler* instance;
         enum OSCConnectionStates getConnectionState(){return connectionState;};
