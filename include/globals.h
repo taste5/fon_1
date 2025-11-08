@@ -9,9 +9,14 @@ struct SystemData {
   byte state;
   byte prev_state;
   byte event;
+  byte keypadFlags;
 };
 
-
+enum KeypadFlags {
+  KEYPAD_TONE,
+  KEYPAD_SEND,
+  KEYPAD_MIDI
+};
 
 
 enum States {

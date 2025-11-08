@@ -33,20 +33,6 @@ void blinkBuiltin(int cycle){
   if(millis() - lastBlink > cycle){digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));lastBlink = millis();}
 }
 
-
-void onExit(enum States s)
-{
-  switch (s)
-  {
-  case STATE_NOT_CONNECTED:
-    digitalWrite(LED_BUILTIN,LOW);
-    break;
-  
-  default:
-    break;
-  }
-}
-
 void onEnter(enum States s)
 {
   switch (s)
@@ -56,11 +42,32 @@ void onEnter(enum States s)
     break;
   case STATE_PICKEDUP:
     digitalWrite(LED_BUILTIN,LOW);
+    if (MachineData.prev_state == STATE_IDLE)
+    {
+      MachineData.keypadFlags |= (1<< KEYPAD_SEND) | (1<<KEYPAD_TONE);
+    }else if (MachineData.prev_state == STATE_RINGING)
+    {
+      MachineData.keypadFlags |= (1<< KEYPAD_MIDI);
+    }
+    break;
+  }
+}
+
+void onExit(enum States s)
+{
+  switch (s)
+  {
+  case STATE_NOT_CONNECTED:
+    digitalWrite(LED_BUILTIN,LOW);
+    break;
+    case STATE_PICKEDUP:
+    MachineData.keypadFlags = 0;
   
   default:
     break;
   }
 }
+
 
 void transitToState(enum States s)
 {
@@ -81,7 +88,7 @@ void transitToState(enum States s)
   MachineData.state = s;
 }
 
-void processKeyPressOnPickedUpAfterIdle(){
+void processKeyPressOnPickedUp(){
         for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
         {
             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
@@ -89,12 +96,12 @@ void processKeyPressOnPickedUpAfterIdle(){
               // MachineData.event = EVENT_KEY_PRESSED;
                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
                     case PRESSED:
-                    keypadNotes.playNote( kpd.key[i].kchar);
-                    Osc.sendChar("/key", kpd.key[i].kchar);
-                    Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x7F);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_TONE)) keypadNotes.playNote( kpd.key[i].kchar);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_SEND)) Osc.sendChar("/key", kpd.key[i].kchar);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x7F);
                 break;
                     case RELEASED:
-                    Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x70);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x00);
                 break;
             }
         }
@@ -182,21 +189,9 @@ void processEvent(){
     break;
     case STATE_PICKEDUP:
        switch (event)
-      {
-        case EVENT_INCOMING_MESSAGE:
-          // processIncomingMessage();
-        break;
-      
+      {   
         case EVENT_KEY_PRESSED:
-          switch (MachineData.prev_state)
-          {
-          case STATE_IDLE:
-            processKeyPressOnPickedUpAfterIdle();
-            break;
-          
-          default:
-            break;
-          }
+          processKeyPressOnPickedUp();
         break;
 
         case EVENT_PICKUP:
@@ -208,7 +203,6 @@ void processEvent(){
         break;
 
         default:
-        keypadNotes.stopNoteAfterDur();
         break;
       }
     break;
