@@ -65,7 +65,7 @@ void OSCHandler::poll(){
     while (size--) msgIN.fill(udp.read());
 
     if(!msgIN.hasError()){
-      this->debug(msgIN);
+      Serial.print("Msg recieved: ") ;this->debug(msgIN);
       msgIN.route("/fon/state", handleStateCmd);
       msgIN.route("/fon/ring", handleStateCmd);
       msgIN.route("/fon/pickup", handleStateCmd);
@@ -107,8 +107,8 @@ void OSCHandler::transmitMsg(OSCMessage &msg)
     return;
   }
   
-  Serial.print("Sent message: ");
-  this->debug(msg);
+  // Serial.print("Sent message: ");
+  // this->debug(msg);
   udp.beginPacket(remoteIp,remotePort);
   msg.send(udp);
   udp.endPacket();
@@ -191,10 +191,9 @@ void OSCHandler::connectToWifi(){
 void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
 {
  const char *subAddr = msg.getAddress() + 5; // 5 = /fon/
- char c = subAddr[0];
- Serial.print(subAddr);
 
- switch (c)
+
+ switch (subAddr[0])
  {
  case 'r': //ring
     if(stateCallback) stateCallback(STATE_RINGING);
