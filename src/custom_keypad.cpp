@@ -21,7 +21,10 @@ const float notesForKeys[KEY_ROWS * KEY_COLS] = {
 
 // Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, KEY_ROWS, KEY_COLS );
 
-MusicalData::MusicalData(const float *noteData, byte arrLen){};
+MusicalData::MusicalData(const float *noteData, byte arrLen)
+    : noteData(noteData), noteArrayLen(arrLen)
+{}
+
 
 uint8_t MusicalData::calculatePos(char k)
 {
@@ -48,32 +51,32 @@ float MusicalData::playNote(char k){
    byte idx = this->calculatePos(k);
    float note = noteData[idx];
    Serial.printf("idx: %i\n", idx);
-   if(noteTimer == 0)   // no note is not currently playing
+   if(idx>=noteArrayLen)
    {
-    Serial.println("Enter");
-    digitalWrite(LED_BUILTIN, HIGH);
-       tone(BUZZER_PIN, noteData[idx]);
-       noteTimer = millis();
-    }
-    if(idx>=noteArrayLen)
-    {
-        tone(BUZZER_PIN,880);
-        delay(500);
-        noTone(BUZZER_PIN);
-        return 880;
+       tone(BUZZER_PIN,880);
+       delay(5000);
+       noTone(BUZZER_PIN);
+       return 880;
     }  
-        
-    // return this->noteData[idx];
-    return 1;
+   
+    tone(BUZZER_PIN, noteData[idx], dur);
+    return this->noteData[idx];
+}
+
+uint8_t MusicalData::getMidiNote(char k)
+{
+
+    return calculatePos(k) + 66; // F Sharp
 }
 
 void MusicalData::stopNoteAfterDur(){
-    if (noteTimer && noteTimer - millis() > dur)
-    {
-        noteTimer = 0;
-        noTone(BUZZER_PIN);
-        digitalWrite(LED_BUILTIN,LOW);
-    }
+    // if (noteTimer && noteTimer - millis() > dur)
+    // {
+    //     Serial.print("Stopped after dur");
+    //     noteTimer = 0;
+    //     noTone(BUZZER_PIN);
+    //     digitalWrite(LED_BUILTIN,LOW);
+    // }
     
 }
 

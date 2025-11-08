@@ -12,7 +12,7 @@
 #define KEY_ROWS 4
 #define KEY_COLS 3
 
-#define KEY_PRESS_TONE_DUR 500
+#define KEY_PRESS_TONE_DUR 400
 
 
 extern const float notesForKeys[KEY_ROWS * KEY_COLS];
@@ -26,7 +26,7 @@ class MusicalData
     void stopNoteAfterDur();
     private:
     byte calculatePos(char k);
-    float *noteData;
+    const float *noteData;
     int dur = KEY_PRESS_TONE_DUR;
     int noteArrayLen = KEY_ROWS * KEY_COLS;
     uint64_t noteTimer = 0;
