@@ -31,26 +31,25 @@ uint8_t MusicalData::calculatePos(char k)
     uint8_t ret = 1;
     if (isDigit(k))
     {
-        ret = k - '0';
+        return k - '0';
     }else if (k == '*')
     {
-        ret = ':' - '0'; //char after 9
+       return STAR_CODE;
     }
     else if (k == '#')
     {
-        ret = ';' - '0'; //char after :
+       return HASH_CODE;
     }
     else 
     {
         Serial.println("MusicalData: Invalid input to Pos");
+        return 1;   
     }
-    return ret;   
 }
 
 float MusicalData::playNote(char k){
    byte idx = this->calculatePos(k);
    float note = noteData[idx];
-   Serial.printf("idx: %i\n", idx);
    if(idx>=noteArrayLen)
    {
        tone(BUZZER_PIN,880);
@@ -68,52 +67,3 @@ uint8_t MusicalData::getMidiNote(char k)
 
     return calculatePos(k) + 66; // F Sharp
 }
-
-void MusicalData::stopNoteAfterDur(){
-    // if (noteTimer && noteTimer - millis() > dur)
-    // {
-    //     Serial.print("Stopped after dur");
-    //     noteTimer = 0;
-    //     noTone(BUZZER_PIN);
-    //     digitalWrite(LED_BUILTIN,LOW);
-    // }
-    
-}
-
-// void loop() {
-//     loopCount++;
-//     if ( (millis()-startTime)>5000 ) {
-//         Serial.print("Average loops per second = ");
-//         Serial.println(loopCount/5);
-//         startTime = millis();
-//         loopCount = 0;
-//     }
-
-//     // Fills kpd.key[ ] array with up-to 10 active keys.
-//     // Returns true if there are ANY active keys.
-//     if (kpd.getKeys())
-//     {
-//         for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-//         {
-//             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
-//             {
-//                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-//                     case PRESSED:
-//                     msg = " PRESSED.";
-//                 break;
-//                     case HOLD:
-//                     msg = " HOLD.";
-//                 break;
-//                     case RELEASED:
-//                     msg = " RELEASED.";
-//                 break;
-//                     case IDLE:
-//                     msg = " IDLE.";
-//                 }
-//                 Serial.print("Key ");
-//                 Serial.print(kpd.key[i].kchar);
-//                 Serial.println(msg);
-//             }
-//         }
-//     }
-// }  // End loop

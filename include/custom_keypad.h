@@ -8,6 +8,8 @@
 #include "config.h"
 #include "notes.h"
 
+#define STAR_CODE 10
+#define HASH_CODE 11
 
 #define KEY_ROWS 4
 #define KEY_COLS 3
@@ -23,7 +25,6 @@ class MusicalData
     MusicalData(const float * keypadNoteData, byte arrLen);
     float playNote(char k);
     uint8_t getMidiNote(char k);
-    void stopNoteAfterDur();
     private:
     byte calculatePos(char k);
     const float *noteData;
