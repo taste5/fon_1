@@ -8,9 +8,18 @@
 struct SystemData {
   byte state;
   byte prev_state;
-  byte event;
+  volatile byte event;
   byte keypadFlags;
+  float timer_cycle_time_s;
+  byte modifier_active;
 };
+
+enum ModifierFlags {
+  MODIFIER_LEFT_ACTIVE,
+  MODIFIER_RIGHT_ACTIVE,
+};
+
+
 
 enum KeypadFlags {
   KEYPAD_TONE,
@@ -33,7 +42,8 @@ enum Events {
   EVENT_KEY_PRESSED = 0x01,
   EVENT_INCOMING_MESSAGE = 0x02,
   EVENT_PICKUP = 0x04,
-  EVENT_LOST_CONNECTION = 0x08,
+  EVENT_TIMER = 0x08,
+  EVENT_LOST_CONNECTION = 0x10,
 };
 
 
