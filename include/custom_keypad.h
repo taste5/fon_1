@@ -16,6 +16,7 @@
 
 #define KEY_PRESS_TONE_DUR 400
 
+#define MODIFIER_OFFSET 11
 
 extern const float notesForKeys[KEY_ROWS * KEY_COLS];
 extern char keys[KEY_ROWS][KEY_COLS];
@@ -24,7 +25,7 @@ class MusicalData
     public:
     MusicalData(const float * keypadNoteData, byte arrLen);
     float playNote(char k);
-    uint8_t getMidiNote(char k);
+    uint8_t getMidiNote(char k, byte offset);
     private:
     byte calculatePos(char k);
     const float *noteData;
