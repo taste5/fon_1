@@ -11,13 +11,14 @@ byte rowPins[KEY_ROWS] = {KEY_PIN_ROW_0,KEY_PIN_ROW_1,KEY_PIN_ROW_2,KEY_PIN_ROW_
 byte colPins[KEY_COLS] = {KEY_PIN_COL_0, KEY_PIN_COL_1,KEY_PIN_COL_2}; //connect to the column pinouts of the kpd
 
 
-
+hw_timer_t *timer = NULL;
 Melody melody;
-MusicalData keypadNotes(notesForKeys, KEY_ROWS * KEY_COLS);
 Keypad kpd = Keypad(makeKeymap(keys),rowPins,colPins,(byte)KEY_ROWS,(byte)KEY_COLS);
 Button pickup;
+Button modifiers[MODIFIER_CNT];
 SystemData MachineData;
 OSCHandler Osc(LOCAL_PORT,REMOTE_PORT,REMOTE_IP);
+MusicalData keypadNotes(notesForKeys, KEY_ROWS * KEY_COLS);
 
 byte getCurrentState(){
   return MachineData.state;
@@ -26,6 +27,12 @@ byte getCurrentState(){
 void keypadEvent(KeypadEvent key){
   MachineData.event = EVENT_KEY_PRESSED;
 }
+
+void IRAM_ATTR timerEvent() {
+  MachineData.event = EVENT_TIMER;
+}
+
+
 
 void blinkBuiltin(int cycle){
   
@@ -40,6 +47,7 @@ void onEnter(enum States s)
   case STATE_NOT_CONNECTED:
     digitalWrite(LED_BUILTIN, HIGH);
     break;
+
   case STATE_PICKEDUP:
     digitalWrite(LED_BUILTIN,LOW);
     if (MachineData.prev_state == STATE_IDLE)
@@ -62,6 +70,9 @@ void onExit(enum States s)
     break;
     case STATE_PICKEDUP:
     MachineData.keypadFlags = 0;
+    
+    case STATE_RINGING:
+      noTone(BUZZER_PIN);
   
   default:
     break;
@@ -72,20 +83,40 @@ void onExit(enum States s)
 void transitToState(enum States s)
 {
   Serial.print("Transition from ");Serial.print(MachineData.state); Serial.print(" to ");Serial.println(s);
-  // Osc.send("/state", s);
+  Osc.send("/state", s);
   if (s >= STATE_CNT)
   {
     Serial.print("Invalid Call to transitToState: ");
     Serial.println(s);
     char buffer[64];
     snprintf(buffer,sizeof(buffer),"invalid input: %i", s);
-    // Osc.send("/error/state", buffer);
+    Osc.send("/error/state", buffer);
     return;
   }
+
   MachineData.prev_state = MachineData.state;
   onExit((enum States)MachineData.state);
   onEnter(s);
   MachineData.state = s;
+}
+
+void pickupEvent()
+{
+    if(checkBtn((&pickup)) > BTN_NONE)
+    {
+      MachineData.event = EVENT_PICKUP;
+    }
+}
+
+void modifierKeypresEvent()
+{
+  for (int i = 0; i < MODIFIER_CNT; i++)
+  {
+    if (checkBtn(&modifiers[i]))
+    {
+      MachineData.modifier_active ^= (1<<i);
+    }
+  }
 }
 
 void processKeyPressOnPickedUp(){
@@ -93,15 +124,14 @@ void processKeyPressOnPickedUp(){
         {
             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
             {
-              // MachineData.event = EVENT_KEY_PRESSED;
                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
                     case PRESSED:
                     if(MachineData.keypadFlags & (1<<KEYPAD_TONE)) keypadNotes.playNote( kpd.key[i].kchar);
                     if(MachineData.keypadFlags & (1<<KEYPAD_SEND)) Osc.sendChar("/key", kpd.key[i].kchar);
-                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x7F);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x7F);
                 break;
                     case RELEASED:
-                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar), 0x00);
+                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x00);
                 break;
             }
         }
@@ -113,6 +143,7 @@ void processEvent(){
   byte counter = 0;
   byte storage;
   if(MachineData.event){
+    cli();
 
   do{
     storage =1<<(counter);  /* Maske zum erkennen von Bits erzeugen */
@@ -127,6 +158,7 @@ void processEvent(){
     (event == EVENT_NONE)
   );
 }
+  sei();
 
 
   switch (MachineData.state)
@@ -151,8 +183,12 @@ void processEvent(){
       break;
 
       case EVENT_PICKUP:
-        transitToState(STATE_PICKEDUP); //
+        transitToState(STATE_PICKEDUP); 
       break;
+
+      case EVENT_TIMER:
+        // transitToState(STATE_RINGING);
+        break;
 
       case EVENT_LOST_CONNECTION:
         transitToState(STATE_NOT_CONNECTED);
@@ -174,7 +210,7 @@ void processEvent(){
         break;
 
         case EVENT_PICKUP:
-          // goToState(STATE_PICKUP);
+          transitToState(STATE_PICKEDUP);
         break;
       
         case EVENT_LOST_CONNECTION:
@@ -182,7 +218,7 @@ void processEvent(){
         break;
 
         default:
-          // ring();
+          ring(&melody);
           blinkBuiltin(100);
         break;
       }
@@ -195,7 +231,7 @@ void processEvent(){
         break;
 
         case EVENT_PICKUP:
-          // transitToState(STATE_IDLE);
+          transitToState(STATE_IDLE);
         break;
       
         case EVENT_LOST_CONNECTION:
@@ -211,17 +247,34 @@ void processEvent(){
   }
 }
 
+void processModifierKeyPress()
+{
+
+}
 
 void setup(){
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   btnInit(&pickup,PICKUP_PIN, 0);
+  const int modifierpins[] = {MODIFIER_KEY_LEFT,MODIFIER_KEY_RIGHT};
+  for (int i = 0; i < MODIFIER_CNT; i++)
+  {
+    btnInit(&modifiers[i], modifierpins[i],i+1);
+  }
+   
+
+
   Serial.begin(9600);
   delay(100);
   Osc.attachStateTransitionCallback(transitToState);
   transitToState(STATE_NOT_CONNECTED);
   kpd.addEventListener(keypadEvent);
+
+  timer = timerBegin(0, TIMER_PRESCALER, true);  
+  timerAttachInterrupt(timer, &timerEvent, true);
+  timerAlarmWrite(timer, (uint64_t)(MachineData.timer_cycle_time_s * pow(10,6)), false);            // interval, autoreload
+  timerAlarmEnable(timer);                                  
 }
 
 void loop() {
@@ -233,18 +286,10 @@ void loop() {
   }
 
   kpd.getKeys();
+  pickupEvent();
+  modifierKeypresEvent();
 
-   int btn_state = checkBtn((&pickup));
-    switch (btn_state)
-    {
-    
-    case BTN_PRESSED:
-    break;
-    case BTN_RELEASED:
-    break;
-    default:
-    break;
-  }
+   
 
 
   Osc.poll();
