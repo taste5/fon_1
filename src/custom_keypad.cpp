@@ -62,8 +62,8 @@ float MusicalData::playNote(char k){
     return this->noteData[idx];
 }
 
-uint8_t MusicalData::getMidiNote(char k)
+uint8_t MusicalData::getMidiNote(char k, byte offset_factor)
 {
 
-    return calculatePos(k) + 66; // F Sharp
+    return calculatePos(k) + offset_factor * MODIFIER_OFFSET + 66; // F Sharp
 }
