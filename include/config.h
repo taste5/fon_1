@@ -21,7 +21,7 @@
 #define MODIFIER_CNT 2
 
 
-#define REMOTE_IP "192.168.8.133" 
+#define REMOTE_IP "192.168.8.255" 
 #define LOCAL_PORT 9000    // Port to listen for incoming OSC
 #define REMOTE_PORT 9001 // Remote host to send OSC
 
