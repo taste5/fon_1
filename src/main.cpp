@@ -44,19 +44,22 @@ void onEnter(enum States s)
 {
   switch (s)
   {
-  case STATE_NOT_CONNECTED:
-    digitalWrite(LED_BUILTIN, HIGH);
+    case STATE_NOT_CONNECTED:
+      digitalWrite(LED_BUILTIN, HIGH);
     break;
 
-  case STATE_PICKEDUP:
-    digitalWrite(LED_BUILTIN,LOW);
-    if (MachineData.prev_state == STATE_IDLE)
-    {
-      MachineData.keypadFlags |= (1<< KEYPAD_SEND) | (1<<KEYPAD_TONE);
-    }else if (MachineData.prev_state == STATE_RINGING)
-    {
-      MachineData.keypadFlags |= (1<< KEYPAD_MIDI);
-    }
+    case STATE_PICKEDUP:
+      digitalWrite(LED_BUILTIN,LOW);
+      if (MachineData.prev_state == STATE_IDLE)
+      {
+        MachineData.keypadFlags |= (1<< KEYPAD_SEND) | (1<<KEYPAD_TONE);
+      }else if (MachineData.prev_state == STATE_RINGING)
+      {
+        MachineData.keypadFlags |= (1<< KEYPAD_MIDI);
+      }
+    break;
+    case STATE_CONFIG:
+      MachineData.history.clear();
     break;
   }
 }
@@ -70,10 +73,18 @@ void onExit(enum States s)
     break;
     case STATE_PICKEDUP:
     MachineData.keypadFlags = 0;
+    break;
     
     case STATE_RINGING:
       noTone(BUZZER_PIN);
-  
+    break;
+    case STATE_CONFIG:
+    timerRestart(timer);
+    timerAlarmEnable(timer);
+    Osc.send("/timer",timerAlarmEnabled(timer));
+    MachineData.history.clear();
+      
+    break;
   default:
     break;
   }
@@ -94,15 +105,20 @@ void transitToState(enum States s)
     return;
   }
 
-  MachineData.prev_state = MachineData.state;
   onExit((enum States)MachineData.state);
+  if (MachineData.state != STATE_CONFIG) MachineData.prev_state = MachineData.state;
   onEnter(s);
   MachineData.state = s;
 }
 
 void pickupEvent()
 {
-    if(checkBtn((&pickup)) > BTN_NONE)
+  int reading = checkBtn(&pickup);
+    if(
+      (reading == BTN_RELEASED && 
+        (MachineData.state == STATE_IDLE || MachineData.state == STATE_RINGING)) ||
+      (reading == BTN_PRESSED && MachineData.state == STATE_PICKEDUP)
+    )
     {
       MachineData.event = EVENT_PICKUP;
     }
@@ -115,28 +131,51 @@ void modifierKeypresEvent()
     if (checkBtn(&modifiers[i]))
     {
       MachineData.modifier_active ^= (1<<i);
+      Osc.send("/log/modifier",i, MachineData.modifier_active);
+      MachineData.event = EVENT_MODIFER;
     }
+
   }
 }
 
 void processKeyPressOnPickedUp(){
-        for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-        {
-            if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
-            {
-                switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-                    case PRESSED:
-                    if(MachineData.keypadFlags & (1<<KEYPAD_TONE)) keypadNotes.playNote( kpd.key[i].kchar);
-                    if(MachineData.keypadFlags & (1<<KEYPAD_SEND)) Osc.sendChar("/key", kpd.key[i].kchar);
-                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x7F);
-                break;
-                    case RELEASED:
-                    if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x00);
-                break;
-            }
-        }
+  for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
+  {
+    if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
+    {
+      switch (kpd.key[i].kstate) 
+      {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
+        case PRESSED:
+        Serial.println("key");
+          if(MachineData.keypadFlags & (1<<KEYPAD_TONE)) keypadNotes.playNote( kpd.key[i].kchar);
+          if(MachineData.keypadFlags & (1<<KEYPAD_SEND)) Osc.sendChar("/key", kpd.key[i].kchar);
+          if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x7F);
+        break;
+        case RELEASED:
+          if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x00);
+        break;
+      }
     }
   }
+}
+
+void  processKeypressOnConfig(){
+  for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
+  {
+    if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
+    {
+      switch (kpd.key[i].kstate) 
+      {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
+        case PRESSED:
+         MachineData.history.push(kpd.key[i].kchar);
+        break;
+        default:
+        break;
+      }
+    }
+  }
+}
+
 
 void processEvent(){
   byte event = EVENT_NONE;
@@ -187,12 +226,14 @@ void processEvent(){
       break;
 
       case EVENT_TIMER:
-        // transitToState(STATE_RINGING);
+        transitToState(STATE_RINGING);
         break;
 
       case EVENT_LOST_CONNECTION:
         transitToState(STATE_NOT_CONNECTED);
       break;
+      case EVENT_MODIFER:
+        transitToState(STATE_CONFIG);
       default:
       blinkBuiltin(500);
         break;
@@ -242,15 +283,32 @@ void processEvent(){
         break;
       }
     break;
+    case STATE_CONFIG:
+      switch (event)
+      {
+      case EVENT_MODIFER:
+        transitToState(STATE_IDLE);
+        break;
+      case EVENT_KEY_PRESSED:
+        processKeypressOnConfig();
+      break;
+      
       default:
+        if (MachineData.history.isFull(3))
+        {
+          tone(BUZZER_PIN,440,500);
+          Serial.printf("to int:%i\n", MachineData.history.toInt());
+          MachineData.timer_cycle_time_s = MachineData.history.toInt();
+          timerAlarmWrite(timer,S_TO_US(MachineData.timer_cycle_time_s),false);
+          MachineData.history.clear();
+        }
+      break;
+      }
     break;
   }
 }
 
-void processModifierKeyPress()
-{
 
-}
 
 void setup(){
 
@@ -268,13 +326,14 @@ void setup(){
   Serial.begin(9600);
   delay(100);
   Osc.attachStateTransitionCallback(transitToState);
-  transitToState(STATE_NOT_CONNECTED);
   kpd.addEventListener(keypadEvent);
-
+  
+  MachineData.timer_cycle_time_s = 6;
   timer = timerBegin(0, TIMER_PRESCALER, true);  
   timerAttachInterrupt(timer, &timerEvent, true);
-  timerAlarmWrite(timer, (uint64_t)(MachineData.timer_cycle_time_s * pow(10,6)), false);            // interval, autoreload
-  timerAlarmEnable(timer);                                  
+  timerAlarmWrite(timer, (uint64_t)(MachineData.timer_cycle_time_s * pow(10,6)), false);
+  
+  transitToState(STATE_NOT_CONNECTED);
 }
 
 void loop() {
