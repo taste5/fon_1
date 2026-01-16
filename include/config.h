@@ -1,6 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#define ENABLE_WLED
 
 #define BUZZER_PIN 23
 #define PICKUP_PIN 22
@@ -24,6 +25,13 @@
 #define REMOTE_IP "192.168.8.255" 
 #define LOCAL_PORT 9000    // Port to listen for incoming OSC
 #define REMOTE_PORT 9001 // Remote host to send OSC
+
+
+#ifdef ENABLE_WLED
+#define WLED_IP_OBI "192.168.8.164" 
+#define WLED_IP_PIX "192.168.8.145"
+#define WLED_IP_MIN "192.168.8.116"
+#endif
 
 #define TIMER_PRESCALER 80
 

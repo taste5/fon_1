@@ -7,6 +7,15 @@
 #include "message.h"
 #include "custom_keypad.h"
 
+#ifdef ENABLE_WLED
+#include "wled_controller.h"
+WLEDController fixtures[WLED_NUM_FIXTURES] = 
+{
+ {WLED_IP_OBI},
+ {WLED_IP_PIX},
+ {WLED_IP_MIN},
+};
+#endif
 byte rowPins[KEY_ROWS] = {KEY_PIN_ROW_0,KEY_PIN_ROW_1,KEY_PIN_ROW_2,KEY_PIN_ROW_3}; //connect to the row pinouts of the kpd
 byte colPins[KEY_COLS] = {KEY_PIN_COL_0, KEY_PIN_COL_1,KEY_PIN_COL_2}; //connect to the column pinouts of the kpd
 
@@ -19,6 +28,9 @@ Button modifiers[MODIFIER_CNT];
 SystemData MachineData;
 OSCHandler Osc(LOCAL_PORT,REMOTE_PORT,REMOTE_IP);
 MusicalData keypadNotes(notesForKeys, KEY_ROWS * KEY_COLS);
+
+
+
 
 byte getCurrentState(){
   return MachineData.state;
@@ -52,9 +64,11 @@ void onEnter(enum States s)
       digitalWrite(LED_BUILTIN,LOW);
       if (MachineData.prev_state == STATE_IDLE)
       {
+        // enable osc keypress send and tone feedback
         MachineData.keypadFlags |= (1<< KEYPAD_SEND) | (1<<KEYPAD_TONE);
       }else if (MachineData.prev_state == STATE_RINGING)
       {
+        //enable Midi masking
         MachineData.keypadFlags |= (1<< KEYPAD_MIDI);
       }
     break;
