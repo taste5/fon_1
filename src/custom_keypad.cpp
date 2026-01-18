@@ -8,8 +8,6 @@ char keys[KEY_ROWS][KEY_COLS] = {
 {'*','0','#'}
 };
 
-
-
 const float notesForKeys[KEY_ROWS * KEY_COLS] = {
      NOTE_G4_FREQ /*<-key 0 E-min*/, 
      NOTE_C4_FREQ, NOTE_E4_FREQ, NOTE_G4_FREQ ,     // C Major
@@ -19,7 +17,25 @@ const float notesForKeys[KEY_ROWS * KEY_COLS] = {
 };
 
 
-// Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, KEY_ROWS, KEY_COLS );
+
+
+void processKeys(KeyHandler onPress, KeyHandler onRelease) 
+{
+    for (int i = 0; i < LIST_MAX; i++) {
+        if (kpd.key[i].stateChanged) {
+            switch (kpd.key[i].kstate) {
+                case PRESSED:
+                    if (onPress) onPress(kpd.key[i].kchar, PRESSED);
+                    break;
+                case RELEASED:
+                    if (onRelease) onRelease(kpd.key[i].kchar, RELEASED);
+                    break;
+            }
+        }
+    }
+}
+
+
 
 MusicalData::MusicalData(const float *noteData, byte arrLen)
     : noteData(noteData), noteArrayLen(arrLen)

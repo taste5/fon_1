@@ -6,8 +6,6 @@
 #define BUZZER_PIN 23
 #define PICKUP_PIN 22
 
-
-
 #define KEY_PIN_COL_0 33
 #define KEY_PIN_COL_1 25
 #define KEY_PIN_COL_2 26

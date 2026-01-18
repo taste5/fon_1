@@ -18,8 +18,22 @@
 
 #define MODIFIER_OFFSET 11
 
+
+//callack function ptr for keypress readings
+typedef void (*KeyHandler)(char key, KeyState state);
+void processKeys(KeyHandler onPress, KeyHandler onRelease = nullptr);
+
+
+// TODO: find out what is best to do here?
+//defined in main.cpp
+extern Keypad kpd;
+
+//defined in custom_keypad.cpp
 extern const float notesForKeys[KEY_ROWS * KEY_COLS];
 extern char keys[KEY_ROWS][KEY_COLS];
+
+
+
 class MusicalData
 {
     public:

@@ -18,13 +18,13 @@ WLEDController fixtures[WLED_NUM_FIXTURES] =
 #endif
 byte rowPins[KEY_ROWS] = {KEY_PIN_ROW_0,KEY_PIN_ROW_1,KEY_PIN_ROW_2,KEY_PIN_ROW_3}; //connect to the row pinouts of the kpd
 byte colPins[KEY_COLS] = {KEY_PIN_COL_0, KEY_PIN_COL_1,KEY_PIN_COL_2}; //connect to the column pinouts of the kpd
+Keypad kpd = Keypad(makeKeymap(keys),rowPins,colPins,(byte)KEY_ROWS,(byte)KEY_COLS);
+Button modifiers[MODIFIER_CNT];
+Button pickup;
 
 
 hw_timer_t *timer = NULL;
 Melody melody;
-Keypad kpd = Keypad(makeKeymap(keys),rowPins,colPins,(byte)KEY_ROWS,(byte)KEY_COLS);
-Button pickup;
-Button modifiers[MODIFIER_CNT];
 SystemData MachineData;
 OSCHandler Osc(LOCAL_PORT,REMOTE_PORT,REMOTE_IP);
 MusicalData keypadNotes(notesForKeys, KEY_ROWS * KEY_COLS);
@@ -72,6 +72,7 @@ void onEnter(enum States s)
         MachineData.keypadFlags |= (1<< KEYPAD_MIDI);
       }
     break;
+
     case STATE_CONFIG:
       MachineData.history.clear();
     break;
@@ -95,7 +96,7 @@ void onExit(enum States s)
     case STATE_CONFIG:
     timerRestart(timer);
     timerAlarmEnable(timer);
-    Osc.send("/timer",timerAlarmEnabled(timer));
+    Osc.send("/timer/enabled",timerAlarmEnabled(timer));
     MachineData.history.clear();
       
     break;
@@ -138,6 +139,7 @@ void pickupEvent()
     }
 }
 
+// Detect modifier Keypresses
 void modifierKeypresEvent()
 {
   for (int i = 0; i < MODIFIER_CNT; i++)
@@ -148,46 +150,27 @@ void modifierKeypresEvent()
       Osc.send("/log/modifier",i, MachineData.modifier_active);
       MachineData.event = EVENT_MODIFER;
     }
-
   }
 }
 
-void processKeyPressOnPickedUp(){
-  for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-  {
-    if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
-    {
-      switch (kpd.key[i].kstate) 
-      {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-        case PRESSED:
-        Serial.println("key");
-          if(MachineData.keypadFlags & (1<<KEYPAD_TONE)) keypadNotes.playNote( kpd.key[i].kchar);
-          if(MachineData.keypadFlags & (1<<KEYPAD_SEND)) Osc.sendChar("/key", kpd.key[i].kchar);
-          if(MachineData.keypadFlags & (1<<KEYPAD_MIDI)) Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x7F);
-        break;
-        case RELEASED:
-          if(MachineData.keypadFlags & (1<<KEYPAD_MIDI))Osc.send("/key/note", keypadNotes.getMidiNote(kpd.key[i].kchar, MachineData.modifier_active), 0x00);
-        break;
-      }
+void keyPressOnPickedUp(char key, KeyState state) {
+    if (state == PRESSED) {
+        if (MachineData.keypadFlags & (1 << KEYPAD_TONE)) keypadNotes.playNote(key);
+        if (MachineData.keypadFlags & (1 << KEYPAD_SEND)) Osc.sendChar("/key", key);
+        if (MachineData.keypadFlags & (1 << KEYPAD_MIDI)) {
+            Osc.send("/key/note", keypadNotes.getMidiNote(key, MachineData.modifier_active), 0x7F);
+        }
+    } else {
+        if (MachineData.keypadFlags & (1 << KEYPAD_MIDI)) {
+            Osc.send("/key/note", keypadNotes.getMidiNote(key, MachineData.modifier_active), 0x00);
+        }
     }
-  }
 }
 
-void  processKeypressOnConfig(){
-  for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-  {
-    if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
-    {
-      switch (kpd.key[i].kstate) 
-      {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-        case PRESSED:
-         MachineData.history.push(kpd.key[i].kchar);
-        break;
-        default:
-        break;
-      }
+void  keypressOnConfig(char key, KeyState state){
+  if (state == PRESSED) {
+        MachineData.history.push(key);
     }
-  }
 }
 
 
@@ -282,7 +265,7 @@ void processEvent(){
        switch (event)
       {   
         case EVENT_KEY_PRESSED:
-          processKeyPressOnPickedUp();
+          processKeys(keyPressOnPickedUp);
         break;
 
         case EVENT_PICKUP:
@@ -304,7 +287,7 @@ void processEvent(){
         transitToState(STATE_IDLE);
         break;
       case EVENT_KEY_PRESSED:
-        processKeypressOnConfig();
+       processKeys( keypressOnConfig);
       break;
       
       default:

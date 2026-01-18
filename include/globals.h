@@ -5,6 +5,8 @@
 
 #include <Arduino.h>
 
+
+//TODO: Add to str function …
 struct KeypadHistory
 {
   /*
