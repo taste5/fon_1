@@ -24,7 +24,46 @@ bool WLEDController::sendCommand() {
     
     int httpCode = http.POST((uint8_t*)payload, strlen(payload));
     http.end();
+    #ifdef WLED_DEBUG
+    Serial.println("=== sendCommand Debug ===");
+    Serial.printf("Target IP: %s\n", wledIP);
+    Serial.printf("Payload: %s\n", payload);  // or however you build it
+    
+    
+    Serial.println("======================");
+    #endif
     
     return (httpCode == 200);
+}
+
+WLEDManager::WLEDManager(WLEDController* _wled, int _n)
+:
+wled(_wled),
+numControllers(_n)
+{
+    if(WLED_N < numControllers)
+    {
+        while (1)
+        {
+            delay(1000);
+            Serial.println("Serious WLED Error! N is Bigger than Max");
+        }
+        
+    }
+}
+
+
+bool WLEDManager::setByIndex(int idx)
+{
+    int wled_n = idx % numControllers;
+    int preset_n = idx / numControllers;
+    Serial.printf("wled_n:%i,preset_n:%i\n",wled_n,preset_n);
+    if (idx >= 9 /*STAR_INDEX*/)
+    {
+        return wled[wled_n].setState(false);
+    }
+    
+
+    return wled[wled_n].setPreset(preset_n+1);
 }
 #endif

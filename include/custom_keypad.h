@@ -8,21 +8,22 @@
 #include "config.h"
 #include "notes.h"
 
-#define STAR_CODE 10
-#define HASH_CODE 11
+#define STAR_INDEX 9
+#define HASH_INDEX 11
+#define ZERO_INDEX 10
 
 #define KEY_ROWS 4
 #define KEY_COLS 3
 
 #define KEY_PRESS_TONE_DUR 400
 
-#define MODIFIER_OFFSET 11
+#define KEY_N_TOTAL 11
 
 
 //callack function ptr for keypress readings
 typedef void (*KeyHandler)(char key, KeyState state);
 void processKeys(KeyHandler onPress, KeyHandler onRelease = nullptr);
-
+int getKeyByIndex(char key);
 
 // TODO: find out what is best to do here?
 //defined in main.cpp
@@ -40,8 +41,8 @@ class MusicalData
     MusicalData(const float * keypadNoteData, byte arrLen);
     float playNote(char k);
     uint8_t getMidiNote(char k, byte offset);
-    private:
     byte calculatePos(char k);
+    private:
     const float *noteData;
     int dur = KEY_PRESS_TONE_DUR;
     int noteArrayLen = KEY_ROWS * KEY_COLS;

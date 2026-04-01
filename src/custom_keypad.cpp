@@ -44,22 +44,21 @@ MusicalData::MusicalData(const float *noteData, byte arrLen)
 
 uint8_t MusicalData::calculatePos(char k)
 {
-    uint8_t ret = 1;
-    if (isDigit(k))
+    switch (k)
     {
-        return k - '0';
-    }else if (k == '*')
-    {
-       return STAR_CODE;
-    }
-    else if (k == '#')
-    {
-       return HASH_CODE;
-    }
-    else 
-    {
-        Serial.println("MusicalData: Invalid input to Pos");
-        return 1;   
+    case '0':
+        return ZERO_INDEX;
+        break;
+    case '*':
+        return STAR_INDEX;
+        break;
+    case '#':
+        return HASH_INDEX;
+    break;
+    
+    default:
+        return k-'1';
+        break;
     }
 }
 
@@ -81,5 +80,5 @@ float MusicalData::playNote(char k){
 uint8_t MusicalData::getMidiNote(char k, byte offset_factor)
 {
 
-    return calculatePos(k) + offset_factor * MODIFIER_OFFSET + 66; // F Sharp
+    return calculatePos(k) + offset_factor * KEY_N_TOTAL + 66; // F Sharp
 }

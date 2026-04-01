@@ -29,6 +29,8 @@
 #define WLED_IP_OBI "192.168.8.164" 
 #define WLED_IP_PIX "192.168.8.145"
 #define WLED_IP_MIN "192.168.8.116"
+#define WLED_N 3
+#define WLED_DEBUG 1
 #endif
 
 #define TIMER_PRESCALER 80

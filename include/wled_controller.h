@@ -31,10 +31,24 @@ public:
     
     bool setPreset(int presetNum);
     bool setState(bool on);
+    void setByIndex(int idx);
     
 private:
     bool sendCommand();
 };
+
+class WLEDManager
+{
+private:
+    WLEDController* wled;
+    int numControllers;
+public:
+    WLEDManager(WLEDController* _wled, int _n);
+    bool setByIndex(int idx);
+};
+
+
+
 
 #endif
 #endif

@@ -2,6 +2,7 @@
 #define __GLOBALS_H__
 
 #define S_TO_US(s)  ((s) * 1000000UL)
+#define S_TO_MS(s)  ((s) * 1000UL)
 
 #include <Arduino.h>
 
