@@ -74,7 +74,7 @@ void loop() {
 
     kpd.getKeys();
     pickupEvent();
-    modifierKeypresEvent();
+    modifierKeyPressEvent();
 
     Osc.poll();
     processEvent();

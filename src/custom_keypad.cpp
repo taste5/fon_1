@@ -46,35 +46,24 @@ uint8_t MusicalData::calculatePos(char k)
 {
     switch (k)
     {
-    case '0':
-        return ZERO_INDEX;
-        break;
-    case '*':
-        return STAR_INDEX;
-        break;
-    case '#':
-        return HASH_INDEX;
-    break;
-    
-    default:
-        return k-'1';
-        break;
+    case '0': return ZERO_INDEX;
+    case '*': return STAR_INDEX;
+    case '#': return HASH_INDEX;
+    default:  return k - '1';
     }
 }
 
 float MusicalData::playNote(char k){
-   byte idx = this->calculatePos(k);
-   float note = noteData[idx];
-   if(idx>=noteArrayLen)
-   {
-       tone(BUZZER_PIN,880);
-       delay(5000);
-       noTone(BUZZER_PIN);
-       return 880;
-    }  
-   
+    byte idx = calculatePos(k);
+    if(idx >= noteArrayLen)
+    {
+        tone(BUZZER_PIN,880);
+        delay(5000);
+        noTone(BUZZER_PIN);
+        return 880;
+    }
     tone(BUZZER_PIN, noteData[idx], dur);
-    return this->noteData[idx];
+    return noteData[idx];
 }
 
 uint8_t MusicalData::getMidiNote(char k, byte offset_factor)

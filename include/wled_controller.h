@@ -11,7 +11,7 @@
 #define WLED_IP_SIZE 16
 #define WLED_URL_SIZE 64
 #define WLED_PAYLOAD_SIZE 128
-#define WLED_NUM_FIXTURES 3
+#define WLED_NUM_FIXTURES WLED_N
 
 // enum WLEDFixtures {
 //     WLED_OBI,

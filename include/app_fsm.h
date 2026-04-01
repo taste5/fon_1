@@ -22,7 +22,7 @@ extern WLEDManager wledManager;
 
 void transitToState(enum States s);
 void pickupEvent();
-void modifierKeypresEvent();
+void modifierKeyPressEvent();
 void processEvent();
 
 #endif

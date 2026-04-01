@@ -20,10 +20,9 @@
 #define KEY_N_TOTAL 11
 
 
-//callack function ptr for keypress readings
+//callback function ptr for keypress readings
 typedef void (*KeyHandler)(char key, KeyState state);
 void processKeys(KeyHandler onPress, KeyHandler onRelease = nullptr);
-int getKeyByIndex(char key);
 
 // TODO: find out what is best to do here?
 //defined in main.cpp
@@ -45,8 +44,7 @@ class MusicalData
     private:
     const float *noteData;
     int dur = KEY_PRESS_TONE_DUR;
-    int noteArrayLen = KEY_ROWS * KEY_COLS;
-    uint64_t noteTimer = 0;
+    int noteArrayLen;
 
 };
 

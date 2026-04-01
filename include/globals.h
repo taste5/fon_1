@@ -22,8 +22,7 @@ struct KeypadHistory
   static constexpr size_t BUFFER_SIZE = 10;
   char buffer[BUFFER_SIZE] = {'\0'};
   byte idx=0;
-  byte cnt=0; //Track how many values are stored
-   void push(char key) {
+  void push(char key) {
         if (idx < BUFFER_SIZE - 1) {  // Leave room for '\0'
             buffer[idx++] = key;
             buffer[idx] = '\0';
@@ -86,7 +85,7 @@ enum States {
   STATE_RINGING = 0x02,
   STATE_PICKEDUP = 0x04,
   STATE_CONFIG = 0x08,
-  STATE_CNT = 9,
+  STATE_MAX = 9,
 };
 
 
@@ -96,7 +95,7 @@ enum Events {
   EVENT_INCOMING_MESSAGE = 0x02,
   EVENT_PICKUP = 0x04,
   EVENT_TIMER = 0x08,
-  EVENT_MODIFER = 0x10,
+  EVENT_MODIFIER = 0x10,
   EVENT_LOST_CONNECTION = 0x20,
 };
 

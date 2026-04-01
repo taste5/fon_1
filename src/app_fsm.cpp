@@ -72,7 +72,7 @@ void transitToState(enum States s)
     Serial.print("Transition from "); Serial.print(MachineData.state); Serial.print(" to "); Serial.println(s);
     Osc.send("/state", s);
 
-    if (s >= STATE_CNT)
+    if (s >= STATE_MAX)
     {
         Serial.print("Invalid Call to transitToState: ");
         Serial.println(s);
@@ -101,7 +101,7 @@ void pickupEvent()
     }
 }
 
-void modifierKeypresEvent()
+void modifierKeyPressEvent()
 {
     for (int i = 0; i < MODIFIER_CNT; i++)
     {
@@ -109,7 +109,7 @@ void modifierKeypresEvent()
         {
             MachineData.modifier_active ^= (1 << i);
             Osc.send("/log/modifier", i, MachineData.modifier_active);
-            MachineData.event = EVENT_MODIFER;
+            MachineData.event = EVENT_MODIFIER;
         }
     }
 }
@@ -201,7 +201,7 @@ void processEvent()
         case EVENT_LOST_CONNECTION:
             transitToState(STATE_NOT_CONNECTED);
             break;
-        case EVENT_MODIFER:
+        case EVENT_MODIFIER:
             transitToState(STATE_CONFIG);
             break;
         default:
@@ -248,7 +248,7 @@ void processEvent()
     case STATE_CONFIG:
         switch (event)
         {
-        case EVENT_MODIFER:
+        case EVENT_MODIFIER:
             transitToState(STATE_IDLE);
             break;
         case EVENT_KEY_PRESSED:
