@@ -227,7 +227,7 @@ void OSCHandler::handlePing(OSCMessage &msg, int addrOffset)
 {
   const char *subAddr = msg.getAddress() + addrOffset;
 
-  if (strcmp(subAddr, "/set") == 0) {
+  if (strncmp(subAddr, "/set",4) == 0) {
     if (msg.isFloat(0))      instance->ping.setCycleT_sec(msg.getFloat(0));
     else if (msg.isInt(0))      instance->ping.setCycleT_sec(msg.getInt(0));
   }
