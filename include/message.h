@@ -55,10 +55,12 @@ class OSCHandler{
         void connectToWifi();
         static StateTransitionCallback stateCallback;
         static void handleStateCmd(OSCMessage &msg, int addrOffset);
-        static void handleConfigCmd(OSCMessage &msg, int addrOffset);
+        static void handleRingCmd(OSCMessage &msg, int addrOffset);
+        static void handlePickupCmd(OSCMessage &msg, int addrOffset);
+        static void handleIdleCmd(OSCMessage &msg, int addrOffset);
         static void handlePing(OSCMessage &msg, int addrOffset);
         void debug(OSCMessage &msg);
-        void composeMsg(OSCMessage &msg, const char *addr);
+        void composeMsg(char *dst, size_t cap, const char *addr);
         void transmitMsg(OSCMessage &msg);
         WiFiUDP udp;
         enum OSCConnectionStates connectionState;

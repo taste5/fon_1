@@ -66,11 +66,11 @@ void OSCHandler::poll(){
 
     if(!msgIN.hasError()){
       Serial.print("Msg recieved: ") ;this->debug(msgIN);
-      msgIN.route("/fon/state", handleStateCmd);
-      msgIN.route("/fon/ring", handleStateCmd);
-      msgIN.route("/fon/pickup", handleStateCmd);
-      msgIN.route("/fon/idle", handleStateCmd);
-      msgIN.route("/fon/ping", handlePing);
+      msgIN.route("/fon/state",  handleStateCmd);
+      msgIN.route("/fon/ring",   handleRingCmd);
+      msgIN.route("/fon/pickup", handlePickupCmd);
+      msgIN.route("/fon/idle",   handleIdleCmd);
+      msgIN.route("/fon/ping",   handlePing);
     }
   }
 }
@@ -116,26 +116,30 @@ void OSCHandler::transmitMsg(OSCMessage &msg)
 }
 
 
+void OSCHandler::composeMsg(char *dst, size_t cap, const char *addr)
+{
+  snprintf(dst, cap, "/fon%s%s", (addr[0] == '/') ? "" : "/", addr);
+}
+
 void OSCHandler::send(const char *address, int val)
 {
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  char buffer[64]; composeMsg(buffer, sizeof(buffer), address);
   OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
 }
+
 void OSCHandler::send(const char *address, float val)
 {
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  char buffer[64]; composeMsg(buffer, sizeof(buffer), address);
   OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
 }
+
 void OSCHandler::send(const char *address, const char *val)
 {
- char buffer[64];
-  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  char buffer[64]; composeMsg(buffer, sizeof(buffer), address);
   OSCMessage msg(buffer);
   msg.add(val);
   transmitMsg(msg);
@@ -144,21 +148,20 @@ void OSCHandler::send(const char *address, const char *val)
 // send pseudo midi messages
 void OSCHandler::send(const char *address, uint8_t nn, uint8_t vel)
 {
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+  char buffer[64]; composeMsg(buffer, sizeof(buffer), address);
   OSCMessage msg(buffer);
   msg.add(nn).add(vel);
   transmitMsg(msg);
 }
-  void OSCHandler::sendChar(const char *address, char c)
-  {
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "/fon%s%s", (address[0] == '/') ? "" : "/", address);
+
+void OSCHandler::sendChar(const char *address, char c)
+{
+  char buffer[64]; composeMsg(buffer, sizeof(buffer), address);
   OSCMessage msg(buffer);
-  char str[2] = {c,0};
+  char str[2] = {c, 0};
   msg.add(str);
   transmitMsg(msg);
-  }
+}
 
 void OSCHandler::connectToWifi(){
   Serial.println("Connecting to WiFi...");
@@ -188,42 +191,43 @@ void OSCHandler::connectToWifi(){
   
   
 };
+void OSCHandler::handleRingCmd(OSCMessage &msg, int addrOffset)
+{
+    if (stateCallback) stateCallback(STATE_RINGING);
+    instance->send("/state", getCurrentState());
+}
+
+void OSCHandler::handlePickupCmd(OSCMessage &msg, int addrOffset)
+{
+    if (stateCallback) stateCallback(STATE_PICKEDUP);
+    instance->send("/state", getCurrentState());
+}
+
+void OSCHandler::handleIdleCmd(OSCMessage &msg, int addrOffset)
+{
+    if (stateCallback) stateCallback(STATE_IDLE);
+    instance->send("/state", getCurrentState());
+}
+
+// Generic handler: caller sends the target state as an int
 void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
 {
- const char *subAddr = msg.getAddress() + 5; // 5 = /fon/
-
-
- switch (subAddr[0])
- {
- case 'r': //ring
-    if(stateCallback) stateCallback(STATE_RINGING);
-  break;
-  case 'p': //pickup
-    if(stateCallback) stateCallback(STATE_PICKEDUP);
-  break;
-  case 'i': //idle
-    if(stateCallback) stateCallback(STATE_IDLE);
-  break; 
-  default:
     if (msg.isInt(0))
     {
-      enum States state = (enum States)msg.getInt(0);
-      if(stateCallback) stateCallback(state);
-    }else if (msg.size() && !msg.isInt(0))
-    {
-      instance->send("/error", "expected Int");
+        if (stateCallback) stateCallback((enum States)msg.getInt(0));
     }
-  break;
-  }
-
-  instance->send("/state", getCurrentState());
+    else if (msg.size())
+    {
+        instance->send("/error", "expected Int");
+    }
+    instance->send("/state", getCurrentState());
 }
 
 void OSCHandler::handlePing(OSCMessage &msg, int addrOffset)
 {
   const char *subAddr = msg.getAddress() + addrOffset;
 
-  if((strcmp(subAddr,"/set\x20") == 0)){
+  if (strcmp(subAddr, "/set") == 0) {
     if (msg.isFloat(0))      instance->ping.setCycleT_sec(msg.getFloat(0));
     else if (msg.isInt(0))      instance->ping.setCycleT_sec(msg.getInt(0));
   }
