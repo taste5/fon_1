@@ -35,6 +35,12 @@ byte getCurrentState() {
     return MachineData.state;
 }
 
+void setSleepAllowed(bool allowed) {
+    MachineData.sleepAllowed = allowed;
+    setCpuFrequencyMhz(allowed ? 80 : 240);
+    WiFi.setSleep(allowed && MachineData.state == STATE_IDLE);
+}
+
 void keypadEvent(KeypadEvent key) {
     MachineData.event = EVENT_KEY_PRESSED;
 }
@@ -78,4 +84,5 @@ void loop() {
 
     Osc.poll();
     processEvent();
+    delay(10);
 }

@@ -12,6 +12,8 @@ static void blinkBuiltin(int cycle) {
 
 static void onEnter(enum States s)
 {
+    WiFi.setSleep(s == STATE_IDLE && MachineData.sleepAllowed);
+
     switch (s)
     {
     case STATE_NOT_CONNECTED:

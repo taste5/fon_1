@@ -62,6 +62,7 @@ struct SystemData {
   byte keypadFlags;
   float timer_cycle_time_s;
   byte modifier_active;
+  bool sleepAllowed = true;
   KeypadHistory history;
 };
 
@@ -101,4 +102,5 @@ enum Events {
 
 
 byte getCurrentState();
+void setSleepAllowed(bool allowed);
 #endif 

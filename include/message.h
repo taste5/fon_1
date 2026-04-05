@@ -58,6 +58,7 @@ class OSCHandler{
         static void handleRingCmd(OSCMessage &msg, int addrOffset);
         static void handlePickupCmd(OSCMessage &msg, int addrOffset);
         static void handleIdleCmd(OSCMessage &msg, int addrOffset);
+        static void handleSleepCmd(OSCMessage &msg, int addrOffset);
         static void handlePing(OSCMessage &msg, int addrOffset);
         void debug(OSCMessage &msg);
         void composeMsg(char *dst, size_t cap, const char *addr);

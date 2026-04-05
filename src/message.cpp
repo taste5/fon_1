@@ -66,11 +66,12 @@ void OSCHandler::poll(){
 
     if(!msgIN.hasError()){
       Serial.print("Msg recieved: ") ;this->debug(msgIN);
-      msgIN.route("/fon/state",  handleStateCmd);
-      msgIN.route("/fon/ring",   handleRingCmd);
-      msgIN.route("/fon/pickup", handlePickupCmd);
-      msgIN.route("/fon/idle",   handleIdleCmd);
-      msgIN.route("/fon/ping",   handlePing);
+      msgIN.route("/fon/state",        handleStateCmd);
+      msgIN.route("/fon/ring",         handleRingCmd);
+      msgIN.route("/fon/pickup",       handlePickupCmd);
+      msgIN.route("/fon/idle",         handleIdleCmd);
+      msgIN.route("/fon/ping",         handlePing);
+      msgIN.route("/fon/config/sleep",  handleSleepCmd);
     }
   }
 }
@@ -221,6 +222,14 @@ void OSCHandler::handleStateCmd(OSCMessage &msg, int addrOffset)
         instance->send("/error", "expected Int");
     }
     instance->send("/state", getCurrentState());
+}
+
+void OSCHandler::handleSleepCmd(OSCMessage &msg, int addrOffset)
+{
+    if (msg.isInt(0)) {
+        setSleepAllowed(msg.getInt(0) != 0);
+    }
+    instance->send("/power/sleep", (int)WiFi.getSleep());
 }
 
 void OSCHandler::handlePing(OSCMessage &msg, int addrOffset)
