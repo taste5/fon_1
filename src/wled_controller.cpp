@@ -1,4 +1,5 @@
 #include "wled_controller.h"
+#include "custom_keypad.h"
 #ifdef ENABLE_WLED
 
 WLEDController::WLEDController(const char* ip) {
@@ -58,7 +59,7 @@ bool WLEDManager::setByIndex(int idx)
     int wled_n = idx % numControllers;
     int preset_n = idx / numControllers;
     Serial.printf("wled_n:%i,preset_n:%i\n",wled_n,preset_n);
-    if (idx >= 9 /*STAR_INDEX*/)
+    if (idx >= STAR_INDEX)
     {
         return wled[wled_n].setState(false);
     }
