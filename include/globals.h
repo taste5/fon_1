@@ -103,4 +103,8 @@ enum Events {
 
 byte getCurrentState();
 void setSleepAllowed(bool allowed);
+void setAudioEnabled(bool enabled);
+bool getAudioEnabled();
+void setAudioUrl(const char* url);
+const char* getAudioUrl();
 #endif 

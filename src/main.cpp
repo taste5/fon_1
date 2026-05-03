@@ -7,6 +7,7 @@
 #include "message.h"
 #include "custom_keypad.h"
 #include "app_fsm.h"
+#include "wifi_audio.h"
 
 #ifdef ENABLE_WLED
 #include "wled_controller.h"
@@ -30,9 +31,27 @@ Melody melody;
 SystemData MachineData;
 OSCHandler Osc(LOCAL_PORT, REMOTE_PORT, REMOTE_IP);
 MusicalData keypadNotes(notesForKeys, KEY_ROWS * KEY_COLS);
+WiFiAudio wifiAudio;
 
 byte getCurrentState() {
     return MachineData.state;
+}
+
+void setAudioEnabled(bool enabled) {
+    if (enabled) wifiAudio.begin();
+    else         wifiAudio.stop();
+}
+
+bool getAudioEnabled() {
+    return wifiAudio.isEnabled();
+}
+
+void setAudioUrl(const char* url) {
+    wifiAudio.setUrl(url);
+}
+
+const char* getAudioUrl() {
+    return wifiAudio.getUrl();
 }
 
 void setSleepAllowed(bool allowed) {

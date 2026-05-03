@@ -71,7 +71,9 @@ void OSCHandler::poll(){
       msgIN.route("/fon/pickup",       handlePickupCmd);
       msgIN.route("/fon/idle",         handleIdleCmd);
       msgIN.route("/fon/ping",         handlePing);
-      msgIN.route("/fon/config/sleep",  handleSleepCmd);
+      msgIN.route("/fon/config/sleep", handleSleepCmd);
+      msgIN.route("/fon/audio/enable", handleAudioEnableCmd);
+      msgIN.route("/fon/audio/url",    handleAudioUrlCmd);
     }
   }
 }
@@ -230,6 +232,24 @@ void OSCHandler::handleSleepCmd(OSCMessage &msg, int addrOffset)
         setSleepAllowed(msg.getInt(0) != 0);
     }
     instance->send("/power/sleep", (int)WiFi.getSleep());
+}
+
+void OSCHandler::handleAudioEnableCmd(OSCMessage &msg, int addrOffset)
+{
+    if (msg.isInt(0)) {
+        setAudioEnabled(msg.getInt(0) != 0);
+    }
+    instance->send("/audio/status", getAudioEnabled() ? 1 : 0);
+}
+
+void OSCHandler::handleAudioUrlCmd(OSCMessage &msg, int addrOffset)
+{
+    if (msg.isString(0)) {
+        char url[256] = {0};
+        msg.getString(0, url, sizeof(url));
+        setAudioUrl(url);
+    }
+    instance->send("/audio/url", getAudioUrl());
 }
 
 void OSCHandler::handlePing(OSCMessage &msg, int addrOffset)

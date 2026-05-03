@@ -4,14 +4,14 @@
 #define ENABLE_WLED
 
 #define BUZZER_PIN 23
-#define PICKUP_PIN 22
+#define PICKUP_PIN 21 // was 22, freed for I2S DIN
 
 #define KEY_PIN_COL_0 33
 #define KEY_PIN_COL_1 25
 #define KEY_PIN_COL_2 26
 
 #define KEY_PIN_ROW_0 27
-#define KEY_PIN_ROW_1 14
+#define KEY_PIN_ROW_1 32 // was 14, freed for I2S BCLK
 #define KEY_PIN_ROW_2 12
 #define KEY_PIN_ROW_3 13
 
@@ -34,5 +34,17 @@
 #endif
 
 #define TIMER_PRESCALER 80
+
+#define I2S_BCLK_PIN 14
+#define I2S_LRC_PIN  15
+#define I2S_DIN_PIN  22
+
+// #define AUDIO_DEFAULT_URL "http://192.168.8.133:9090/stream.mp3"
+
+#ifndef AUDIO_DEFAULT_URL
+// Override in secrets.h with your Mac's LAN IP, e.g.
+// #define AUDIO_DEFAULT_URL "http://192.168.x.x:9090/stream.m3u8"
+#define AUDIO_DEFAULT_URL "http://localhost:9090/stream.m3u8"
+#endif
 
 #endif 

@@ -59,6 +59,8 @@ class OSCHandler{
         static void handlePickupCmd(OSCMessage &msg, int addrOffset);
         static void handleIdleCmd(OSCMessage &msg, int addrOffset);
         static void handleSleepCmd(OSCMessage &msg, int addrOffset);
+        static void handleAudioEnableCmd(OSCMessage &msg, int addrOffset);
+        static void handleAudioUrlCmd(OSCMessage &msg, int addrOffset);
         static void handlePing(OSCMessage &msg, int addrOffset);
         void debug(OSCMessage &msg);
         void composeMsg(char *dst, size_t cap, const char *addr);
