@@ -74,6 +74,7 @@ void OSCHandler::poll(){
       msgIN.route("/fon/config/sleep", handleSleepCmd);
       msgIN.route("/fon/audio/enable", handleAudioEnableCmd);
       msgIN.route("/fon/audio/url",    handleAudioUrlCmd);
+      msgIN.route("/fon/beep",          handleBeepCmd);
     }
   }
 }
@@ -194,6 +195,15 @@ void OSCHandler::connectToWifi(){
   
   
 };
+void OSCHandler::handleBeepCmd(OSCMessage &msg, int addrOffset)
+{
+    if (msg.isInt(0)) {
+        int a = msg.getInt(0);
+        if (a == 1 || a == 0) {
+            setBeep(a !=0);
+        }
+    }
+}
 void OSCHandler::handleRingCmd(OSCMessage &msg, int addrOffset)
 {
     if (stateCallback) stateCallback(STATE_RINGING);

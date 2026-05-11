@@ -1,6 +1,8 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
+#include <cstdint>
+
 #define S_TO_US(s)  ((s) * 1000000UL)
 #define S_TO_MS(s)  ((s) * 1000UL)
 
@@ -64,6 +66,7 @@ struct SystemData {
   byte modifier_active;
   bool sleepAllowed = true;
   KeypadHistory history;
+  int8_t beep_on = -1;
 };
 
 enum ModifierFlags {
@@ -105,6 +108,7 @@ byte getCurrentState();
 void setSleepAllowed(bool allowed);
 void setAudioEnabled(bool enabled);
 bool getAudioEnabled();
+void setBeep(bool yesno);
 void setAudioUrl(const char* url);
 const char* getAudioUrl();
 #endif 

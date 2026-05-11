@@ -60,12 +60,35 @@ void setSleepAllowed(bool allowed) {
     WiFi.setSleep(allowed && MachineData.state == STATE_IDLE);
 }
 
+void setBeep(bool yesno) {
+    MachineData.beep_on = yesno ? (int8_t)1 : (int8_t)0;
+}
+
 void keypadEvent(KeypadEvent key) {
     MachineData.event = EVENT_KEY_PRESSED;
 }
 
 void IRAM_ATTR timerEvent() {
     MachineData.event = EVENT_TIMER;
+}
+
+void beep(SystemData *d) {
+    const int yes_freq[] = {440, 880};
+    const int no_freq[] = {880, 440};
+    static unsigned long last_beep = 0;
+    static int last_freq_idx = 0;
+    const unsigned long now = millis();
+    if (now - last_beep > 100) {
+        last_beep = now;
+        const int hz = (d->beep_on) ? yes_freq[last_freq_idx] : no_freq[last_freq_idx];
+        tone(BUZZER_PIN, hz, 100);
+        if (last_freq_idx == 1) {
+            d->beep_on = -1;
+            last_freq_idx = 0;
+            return;
+        }
+        last_freq_idx++;
+    }
 }
 
 void setup() {
@@ -103,5 +126,8 @@ void loop() {
 
     Osc.poll();
     processEvent();
+    if (MachineData.beep_on != -1) {
+        beep(&MachineData);
+    }
     delay(10);
 }
