@@ -2,8 +2,8 @@
 #define __WIFI_AUDIO_H__
 
 #include "AudioTools.h"
-#include "AudioTools/AudioCodecs/CodecAACHelix.h"
-#include "AudioTools/Communication/HLSStream.h"
+#include "AudioTools/AudioCodecs/CodecMP3Helix.h"
+#include "AudioTools/Communication/AudioHttp.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -19,15 +19,15 @@ public:
 private:
     static void streamTask(void* arg);
 
-    HLSStream            hlsStream;
-    I2SStream            i2s;
-    AACDecoderHelix      aac;
-    EncodedAudioStream   decoder{ &i2s, &aac };
-    StreamCopy           copier{ decoder, hlsStream };
+    URLStreamBuffered urlStream;
+    I2SStream         i2s;
+    MP3DecoderHelix   mp3;
+    EncodedAudioStream decoder{ &i2s, &mp3 };
+    StreamCopy         copier{ decoder, urlStream };
 
-    String               currentUrl;
-    TaskHandle_t         taskHandle = nullptr;
-    volatile bool        enabled    = false;
+    String              currentUrl;
+    TaskHandle_t        taskHandle = nullptr;
+    volatile bool       enabled    = false;
 };
 
 #endif

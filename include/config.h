@@ -39,12 +39,17 @@
 #define I2S_LRC_PIN  15
 #define I2S_DIN_PIN  22
 
-// #define AUDIO_DEFAULT_URL "http://192.168.8.133:9090/stream.mp3"
+
+
+#ifndef AUDIO_MIME_DEFAULT
+// MPD httpd encoder="lame …" sends MP3; match Accept / stream type here.
+#define AUDIO_MIME_DEFAULT "audio/mp3"
+#endif
 
 #ifndef AUDIO_DEFAULT_URL
-// Override in secrets.h with your Mac's LAN IP, e.g.
-// #define AUDIO_DEFAULT_URL "http://192.168.x.x:9090/stream.m3u8"
-#define AUDIO_DEFAULT_URL "http://localhost:9090/stream.m3u8"
+// MPD HTTP output (`audio_output { type "httpd" … }`): use host/port/path it serves.
+// Override in secrets.h, e.g. #define AUDIO_DEFAULT_URL "http://192.168.x.x:8000/stream"
+#define AUDIO_DEFAULT_URL "http://192.168.8.133:9090/"
 #endif
 
 #endif 

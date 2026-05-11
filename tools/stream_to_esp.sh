@@ -35,5 +35,9 @@ exec ffmpeg -hide_banner -loglevel info \
     -f avfoundation -i ":${DEVICE}" \
     -ac 1 -ar "${SAMPLE_RATE}" \
     -c:a aac -b:a "${BITRATE}" \
-    -f hls -hls_time 2 -hls_list_size 10 -hls_flags delete_segments \
+    -f hls \
+    -hls_time 1 \
+    -hls_list_size 12 \
+    -hls_init_time 0 \
+    -hls_flags delete_segments+independent_segments+omit_endlist \
     "${PLAYLIST}"

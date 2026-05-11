@@ -3,7 +3,7 @@
 #include "secrets.h"
 
 WiFiAudio::WiFiAudio()
-    : hlsStream(credentials.ssid, credentials.password)
+    : urlStream(credentials.ssid, credentials.password)
     , currentUrl(AUDIO_DEFAULT_URL) {}
 
 void WiFiAudio::streamTask(void* arg) {
@@ -28,7 +28,9 @@ void WiFiAudio::streamTask(void* arg) {
             vTaskDelay(pdMS_TO_TICKS(2));
         }
     }
-    vTaskDelete(NULL);
+
+    self->taskHandle = nullptr;
+    vTaskDelete(nullptr);
 }
 
 void WiFiAudio::begin() {
@@ -42,28 +44,44 @@ void WiFiAudio::begin() {
 
     decoder.begin();
 
-    if (!hlsStream.begin(currentUrl.c_str())) {
-        Serial.printf("WiFiAudio: failed to open HLS URL %s\n", currentUrl.c_str());
+    urlStream.setBufferSize(2048, 32);
+
+    if (!urlStream.begin(currentUrl.c_str(), AUDIO_MIME_DEFAULT)) {
+        Serial.printf("WiFiAudio: failed to open URL %s\n", currentUrl.c_str());
         decoder.end();
         i2s.end();
         return;
     }
 
     enabled = true;
-    xTaskCreate(streamTask, "wifi_radio", 8192, this, 5, &taskHandle);
+    if (xTaskCreate(streamTask, "wifi_radio", 8192, this, 5, &taskHandle) != pdPASS) {
+        enabled = false;
+        urlStream.end();
+        decoder.end();
+        i2s.end();
+        Serial.println("WiFiAudio: xTaskCreate failed");
+        taskHandle = nullptr;
+        return;
+    }
+
     Serial.printf("WiFiAudio: streaming %s\n", currentUrl.c_str());
 }
 
 void WiFiAudio::stop() {
-    if (!enabled) return;
+    if (!enabled && taskHandle == nullptr) return;
+
     enabled = false;
 
-    if (taskHandle) {
+    unsigned long waited = millis();
+    while (taskHandle != nullptr && millis() - waited < 2000) {
+        delay(5);
+    }
+    if (taskHandle != nullptr) {
         vTaskDelete(taskHandle);
         taskHandle = nullptr;
     }
 
-    hlsStream.end();
+    urlStream.end();
     decoder.end();
     i2s.end();
     Serial.println("WiFiAudio: stopped");
