@@ -13,11 +13,7 @@
 #define WLED_PAYLOAD_SIZE 128
 #define WLED_NUM_FIXTURES WLED_N
 
-// enum WLEDFixtures {
-//     WLED_OBI,
-//     WLED_PIX,
-//     WLED_MIN
-// };
+
 
 class WLEDController {
 private:
