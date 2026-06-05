@@ -21,16 +21,21 @@ private:
     char wledIP[WLED_IP_SIZE];
     char url[WLED_URL_SIZE];
     char payload[WLED_PAYLOAD_SIZE];
-    
+    void httpTask();
+        // Static wrapper for task
+    static void httpTaskWrapper(void *parameter) {
+        WLEDController *instance = (WLEDController*)parameter;
+        instance->httpTask();
+        vTaskDelete(NULL);
+    };
+   
 public:
     WLEDController(const char* ip);
-    
-    bool setPreset(int presetNum);
-    bool setState(bool on);
+   
+    void setPreset(int presetNum);
+    void setState(bool on);
     void setByIndex(int idx);
-    
-private:
-    bool sendCommand();
+    void sendCommand();
 };
 
 class WLEDManager
@@ -38,9 +43,11 @@ class WLEDManager
 private:
     WLEDController* wled;
     int numControllers;
+    
+    
 public:
     WLEDManager(WLEDController* _wled, int _n);
-    bool setByIndex(int idx);
+    void setByIndex(int idx);
 };
 
 

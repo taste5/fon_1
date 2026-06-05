@@ -139,8 +139,7 @@ static void keyPressOnIdle(char key, KeyState state)
         int idx = keypadNotes.calculatePos(key);
         Serial.printf("index: %i\n", idx);
 #ifdef ENABLE_WLED
-        bool err = wledManager.setByIndex(idx);
-        Osc.send("/wled/success", err);
+        wledManager.setByIndex(idx);
 #endif
     }
 }
